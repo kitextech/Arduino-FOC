@@ -310,7 +310,7 @@ void StepperMotor::loopFOC() {
   electrical_angle = electricalAngle();
 
   // set the phase voltage - FOC heart function :)
-  setPhaseVoltage(voltage.q, voltage.d, electrical_angle +shaft_velocity*0.008 );
+  setPhaseVoltage(voltage.q, voltage.d, electrical_angle +shaft_velocity*0.008 ); // added advance by KiteX (optimized for specific application)
 }
 
 // Iterative function running outer loop of the FOC algorithm
