@@ -177,22 +177,79 @@ int StepperMotor::alignSensor() {
 
   }else if(monitor_port) monitor_port->println(F("MOT: Skip dir calib."));
 
+  // // zero electric angle not known
+  // if(!_isset(zero_electric_angle)){
+  //   // align the electrical phases of the motor and sensor
+  //   // set angle -90(270 = 3PI/2) degrees
+  //   setPhaseVoltage(voltage_sensor_align, 0,  _3PI_2);
+  //   _delay(700);
+  //   // read the sensor
+  //   sensor->update();
+  //   // get the current zero electric angle
+  //   zero_electric_angle = 0;
+  //   zero_electric_angle = electricalAngle();
+  //   _delay(20);
+  //   if(monitor_port){
+  //     monitor_port->print(F("MOT: Zero elec. angle: "));
+  //     monitor_port->println(zero_electric_angle);
+  //   }
+  //   // stop everything
+  //   setPhaseVoltage(0, 0, 0);
+  //   _delay(200);
+  // }else if(monitor_port) monitor_port->println(F("MOT: Skip offset calib."));
+
+
   // zero electric angle not known
   if(!_isset(zero_electric_angle)){
-    // align the electrical phases of the motor and sensor
-    // set angle -90(270 = 3PI/2) degrees
-    setPhaseVoltage(voltage_sensor_align, 0,  _3PI_2);
-    _delay(700);
-    // read the sensor
-    sensor->update();
-    // get the current zero electric angle
-    zero_electric_angle = 0;
-    zero_electric_angle = electricalAngle();
-    _delay(20);
-    if(monitor_port){
-      monitor_port->print(F("MOT: Zero elec. angle: "));
-      monitor_port->println(zero_electric_angle);
+    
+    // Move 1 shaft rotation open loop (pole_pairs * 2 pi electric angle) 
+
+    // create a look up table with a offset for each polepair
+    float sum[pole_pairs] = {};
+    int count[pole_pairs] = {};
+
+    for (int pp_i = 0; pp_i < pole_pairs; pp_i++) {
+        // for every pole we want ~ 20 measurements;
+        for ( int measure_i = 0; measure_i < 20; measure_i++) {
+            // for every measurement we want to take 20 steps to get to the next one
+            float angle = 0;
+            for (int i = 0; i <=20; i++ ) {
+              angle = _3PI_2 + _2PI * (measure_i * 20 + i) / 400.0f;
+              setPhaseVoltage(voltage_sensor_align, 0,  angle);
+            
+              _delay(1);
+            }
+            _delay(2);
+            sensor->update();
+            float mechAngle = sensor->getMechanicalAngle();
+            float openLoopAngle =  _normalizeAngle(angle);
+            float encoderElectricAngle = electricalAngle(); // from encoder)
+            float angleOffset = _normalizeAngle(encoderElectricAngle - openLoopAngle);
+            // monitor_port->println(angleOffset);
+            int bin = mechAngle * pole_pairs / _2PI;
+            sum[bin] += angleOffset;
+            count[bin] += 1;
+        }
     }
+
+    for (int pp_i = 0; pp_i < pole_pairs; pp_i++) {
+      zero_offset_nonlin[pp_i] = sum[pp_i]/count[pp_i];
+    }
+
+    if(monitor_port) {
+      for (int pp_i = 0; pp_i < pole_pairs; pp_i++) {
+        monitor_port->print(F("bin: "));
+        monitor_port->print(pp_i);
+        monitor_port->print(F(" sum: "));
+        monitor_port->print(sum[pp_i]);
+        monitor_port->print(F(" count: "));
+        monitor_port->print(count[pp_i]);
+        monitor_port->print(F(" mean: "));
+        monitor_port->println(zero_offset_nonlin[pp_i]);
+      }
+    }
+
+    zero_electric_angle = 0;
     // stop everything
     setPhaseVoltage(0, 0, 0);
     _delay(200);
@@ -253,7 +310,7 @@ void StepperMotor::loopFOC() {
   electrical_angle = electricalAngle();
 
   // set the phase voltage - FOC heart function :)
-  setPhaseVoltage(voltage.q, voltage.d, electrical_angle);
+  setPhaseVoltage(voltage.q, voltage.d, electrical_angle +shaft_velocity*0.008 );
 }
 
 // Iterative function running outer loop of the FOC algorithm

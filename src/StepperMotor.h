@@ -77,6 +77,9 @@ class StepperMotor: public FOCMotor
     
     float	Ualpha,Ubeta; //!< Phase voltages U alpha and U beta used for inverse Park and Clarke transform
 
+    // zero_offset non-llin // KiteX
+    float zero_offset_nonlin[50] = {};
+
   private:
   
     // FOC methods 
