@@ -222,9 +222,8 @@ int StepperMotor::alignSensor() {
             _delay(2);
             sensor->update();
             float sensorAngle = sensor->getAngle() * pole_pairs * sensor_direction;
-            float openLoopAngle = pp_i * _2PI + angle;   //_normalizeAngle(angle);
-            // float encoderElectricAngle = electricalAngle(); // from encoder) // _normalizeAngle( (float)(sensor_direction * pole_pairs) * sensor->getMechanicalAngle()
-            float angleOffset = sensorAngle - openLoopAngle; //_normalizeAngle(encoderElectricAngle - openLoopAngle);
+            float openLoopAngle = pp_i * _2PI + angle; 
+            float angleOffset = sensorAngle - openLoopAngle;
             monitor_port->println(angleOffset);
             int bin = sensor->getMechanicalAngle() * pole_pairs / _2PI;
             sum[bin] += angleOffset;
