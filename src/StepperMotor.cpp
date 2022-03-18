@@ -214,26 +214,26 @@ int StepperMotor::alignSensor() {
             // for every measurement we want to take 20 steps to get to the next one
             float angle = 0;
             for (int i = 0; i <=20; i++ ) {
-              angle = _3PI_2 + _2PI * (measure_i * 20 + i) / 400.0f;
+              angle = _2PI * (measure_i * 20 + i) / 400.0f;
               setPhaseVoltage(voltage_sensor_align, 0,  angle);
             
               _delay(1);
             }
             _delay(2);
             sensor->update();
-            float mechAngle = sensor->getMechanicalAngle();
-            float openLoopAngle =  _normalizeAngle(angle);
-            float encoderElectricAngle = electricalAngle(); // from encoder)
-            float angleOffset = _normalizeAngle(encoderElectricAngle - openLoopAngle);
-            // monitor_port->println(angleOffset);
-            int bin = mechAngle * pole_pairs / _2PI;
+            float sensorAngle = sensor->getAngle() * pole_pairs * sensor_direction;
+            float openLoopAngle = pp_i * _2PI + angle;   //_normalizeAngle(angle);
+            // float encoderElectricAngle = electricalAngle(); // from encoder) // _normalizeAngle( (float)(sensor_direction * pole_pairs) * sensor->getMechanicalAngle()
+            float angleOffset = sensorAngle - openLoopAngle; //_normalizeAngle(encoderElectricAngle - openLoopAngle);
+            monitor_port->println(angleOffset);
+            int bin = sensor->getMechanicalAngle() * pole_pairs / _2PI;
             sum[bin] += angleOffset;
             count[bin] += 1;
         }
     }
 
     for (int pp_i = 0; pp_i < pole_pairs; pp_i++) {
-      zero_offset_nonlin[pp_i] = sum[pp_i]/count[pp_i];
+      zero_offset_nonlin[pp_i] = _normalizeAngle(sum[pp_i]/count[pp_i] - _PI_2);
     }
 
     if(monitor_port) {
@@ -301,16 +301,16 @@ void StepperMotor::loopFOC() {
   // shaft angle
   shaft_angle = shaftAngle();
 
-  // if disabled do nothing
-  if(!enabled) return;
+  // encoder offset
+  float nonLinOffset = zero_offset_nonlin[(int) (sensor->getMechanicalAngle() * pole_pairs / _2PI)];
 
   // Needs the update() to be called first
   // This function will not have numerical issues because it uses Sensor::getMechanicalAngle() 
   // which is in range 0-2PI
-  electrical_angle = electricalAngle();
+  electrical_angle = electricalAngle() - nonLinOffset;
 
   // set the phase voltage - FOC heart function :)
-  setPhaseVoltage(voltage.q, voltage.d, electrical_angle +shaft_velocity*0.008 ); // added advance by KiteX (optimized for specific application)
+  setPhaseVoltage(voltage.q, voltage.d, electrical_angle+shaft_velocity*0.008); // *0.08
 }
 
 // Iterative function running outer loop of the FOC algorithm
