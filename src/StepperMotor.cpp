@@ -52,7 +52,7 @@ void StepperMotor::init() {
   }
   P_angle.limit = velocity_limit;
 
-  // _delay(500);
+  // _delay(500); // remnove in order to allow reinitialization without loosing track of the sensor angle.
   // enable motor
   if(monitor_port) monitor_port->println(F("MOT: Enable driver."));
   enable();
