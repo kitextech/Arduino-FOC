@@ -309,7 +309,7 @@ void StepperMotor::loopFOC() {
   electrical_angle = electricalAngle() - nonLinOffset;
 
   // set the phase voltage - FOC heart function :)
-  setPhaseVoltage(voltage.q, voltage.d, electrical_angle+shaft_velocity*0.008); // *0.08
+  setPhaseVoltage(voltage.q, voltage.d, electrical_angle + shaft_velocity * delayCompensationUs * pole_pairs * 1e-6);
 }
 
 // Iterative function running outer loop of the FOC algorithm

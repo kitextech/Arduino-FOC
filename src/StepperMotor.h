@@ -79,6 +79,7 @@ class StepperMotor: public FOCMotor
 
     // zero_offset non-llin // KiteX
     float zero_offset_nonlin[50] = {};
+    float delayCompensationUs = 0;
 
   private:
   
