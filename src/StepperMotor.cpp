@@ -407,7 +407,11 @@ void StepperMotor::setPhaseVoltage(float Uq, float Ud, float angle_el) {
   Ubeta =  _sa * Ud + _ca * Uq;    //  cos(angle) * Uq;
 
   // set the voltages in hardware
-  driver->setPwm(Ualpha, Ubeta);
+  if (invertDirection) {
+    driver->setPwm(Ualpha, -Ubeta);
+  } else {
+    driver->setPwm(Ualpha, Ubeta);
+  }
 }
 
 // Function (iterative) generating open loop movement for target velocity
