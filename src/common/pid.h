@@ -24,6 +24,8 @@ public:
 
     float operator() (float error);
 
+    void reset(); // kitex
+
     float P; //!< Proportional gain 
     float I; //!< Integral gain 
     float D; //!< Derivative gain 
